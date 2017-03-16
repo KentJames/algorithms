@@ -10,12 +10,14 @@
 //reduces matrix size by 2 in each dimension
 void matrixreduce(double *inputmatrix, double *outputmatrix,int originaldimensions,int reduction){
 
-    if(originaldimensions%reduction != 0) errx(1,"dimension/window size mismatch!");
+    if(originaldimensions%reduction) errx(1,"dimension/window size mismatch!");
   
     int outputdimensions = originaldimensions/reduction;
     int i,j;
     for(j=0;j<=outputdimensions-1;j+=1){ 
         for(i=0;i<=outputdimensions-1;i+=1){
+            
+            outputmatrix[i*outputdimensions+j] = 0.0; // Need to initialise or you can get undefined data I found!
             int l,m;
             for(m=0;m<reduction;m++){
                 for(l=0;l<reduction;l++){
@@ -106,6 +108,8 @@ int main(int argc, char *argv[]){
     printmatrix(slidingreducedmatrix,dimensionmatrix-1);
 
 
-
-return 0;
+    free(matrix);
+    free(reducedmatrix);
+    free(slidingreducedmatrix);
+    return 0;
 }
