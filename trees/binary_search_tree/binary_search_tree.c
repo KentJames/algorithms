@@ -43,12 +43,9 @@ treeNode *insert(treeNode *Root,int key, int value){
 
 treeNode* minValueNode(treeNode *Root){
 
-    printf("asd");
     treeNode *current = Root;
-    printf("asd");
     while(current->left != NULL){
         current = current->left;
-        printf("Current Value: %d",current->key);
     }
     return current;
 }
@@ -65,19 +62,16 @@ treeNode* delete(treeNode *Root,int key){
     }
     else {
         if(Root->left == NULL){
-            printf("Left \n");
             treeNode *temp = Root->right;
             free(Root);
             return temp;
         }
         else if(Root->right == NULL){
-            printf("Right \n");
             treeNode *temp = Root->left;
             free(Root);
             return temp;
         }
         else {
-            printf("Fun \n");
             treeNode *temp = minValueNode(Root->right);
             Root->key = temp->key;
             Root->value = temp->value; 
@@ -96,6 +90,9 @@ int main(){
     insert(root,4,10);
     insert(root,11,10);
     insert(root,12,10);
+    insert(root,6,12);
+    insert(root,13,15);
+
     
     //printf("Temp left: %d \n",temp->right);
 
@@ -103,7 +100,7 @@ int main(){
     if(searchnode != NULL){
         printf("Value: %d \n",searchnode->value);
     }
-    delete(root,13);
+    delete(root,4);
 
     return(0);
 }
