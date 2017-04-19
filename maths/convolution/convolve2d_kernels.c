@@ -19,7 +19,7 @@ static inline void printkernel(double *kernel, int size_x, int size_y){
     int i,j;
     for(j=0;j<size_y;j++){
         for(i=0;i<size_x;i++){
-            printf("%.2f ",*(kernel+j*size_x + i));
+            printf("%.1f ",*(kernel+j*size_x + i));
         }
         printf("\n");
     }
@@ -39,8 +39,8 @@ void convolve2d_kernels(double *kernel1, double *kernel2, double *output_kernel,
     int i,j;
 
 
-    for(j=(d_in2_y-1);j<(d_in2_y+(d_in2_y-1));j++){
-        for(i=(d_in2_x-1);i<(d_in2_x+(d_in2_x-1));i++){
+    for(j=(d_in2_y-1);j<(d_in2_y+(d_in1_y-1));j++){
+        for(i=(d_in2_x-1);i<(d_in2_x+(d_in1_x-1));i++){
             *(intermediate_kernel+j*intk_x+i) = *(kernel1+(j-(d_in2_y-1))*d_in1_x+(i-(d_in2_x-1)));
         }
     }
@@ -73,8 +73,8 @@ void convolve2d_kernels(double *kernel1, double *kernel2, double *output_kernel,
 
 int main(){
 
-    int size_x = 3;
-    int size_y = 3;
+    int size_x = 15;
+    int size_y = 15;
 
     int output_size_x = size_x*2 -1;
     int output_size_y = size_y*2 -1;
@@ -85,7 +85,7 @@ int main(){
     double *output_kernel = malloc((output_size_x + 2) * (output_size_y+2) * sizeof(double));
 
     initkernel(kernel1,size_x,size_y,1.0);
-    initkernel(kernel2,size_x,size_y,2.0);
+    initkernel(kernel2,size_x,size_y,1.0);
     initkernel(output_kernel,output_size_x,output_size_y,0.0);
 
     printf("Convolution Function 1/2: \n");
@@ -96,11 +96,11 @@ int main(){
     printf("Output Kernel: \n");
     printkernel(output_kernel,output_size_x,output_size_y);
 
-    int sizeko_x = size_x+2;
-    int sizeko_y = size_y+2;
+    int sizeko_x = size_x+(size_x-1);
+    int sizeko_y = size_y+(size_y-1);
 
-    int sizek3_x = 5;
-    int sizek3_y = 5; 
+    int sizek3_x = 7;
+    int sizek3_y = 7; 
 
     int sizeko2_x = output_size_x+(sizek3_x-1);
     int sizeko2_y = output_size_y+(sizek3_y-1);
@@ -110,7 +110,7 @@ int main(){
     initkernel(output_kernel2,sizeko2_x,sizeko2_y,0.0);
     initkernel(kernel3,sizek3_x,sizek3_y,1.0);
 
-    convolve2d_kernels(output_kernel,kernel3,output_kernel2,sizeko_x,sizeko_y,sizek3_x,sizek3_y,sizeko2_x,sizeko2_y);
+    convolve2d_kernels(output_kernel,kernel3,output_kernel2,output_size_x,output_size_y,sizek3_x,sizek3_y,sizeko2_x,sizeko2_y);
 
     printkernel(output_kernel2,sizeko2_x,sizeko2_y);
 
