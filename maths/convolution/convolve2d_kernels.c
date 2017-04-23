@@ -1,7 +1,12 @@
+/* This algorithm takes two 2D convolution kernels, such as those used in standard image processing
+ * pipelines, and convolves them together to create a single convolution kernel.
+ * This is useful for repeating the same sequence of kernels on different images, as it avoids
+ * significant extra computation */
+
 #include <stdio.h>
 #include <stdlib.h>
 
-
+// Initialize matrix to a certain value.
 static inline void initkernel(double *kernel, int size_x, int size_y, double init_value){
 
     int i,j;
@@ -14,6 +19,7 @@ static inline void initkernel(double *kernel, int size_x, int size_y, double ini
 
 }
 
+// Runs through a matrix and prints the data contained.
 static inline void printkernel(double *kernel, int size_x, int size_y){
 
     int i,j;
@@ -27,7 +33,7 @@ static inline void printkernel(double *kernel, int size_x, int size_y){
 }
 
 
-
+// Convolves kernels together.
 void convolve2d_kernels(double *kernel1, double *kernel2, double *output_kernel, int d_in1_x, int d_in1_y, int d_in2_x, int d_in2_y, int d_out_x, int d_out_y){
 
     //Set middle of output kernel to kernel1. Then we convolve over that kernel with kernel2.
@@ -79,7 +85,7 @@ int main(){
     int output_size_x = size_x*2 -1;
     int output_size_y = size_y*2 -1;
 
-
+    //Allocate our memory spaces for our matrices.
     double *kernel1 = malloc(size_x * size_y * sizeof(double));
     double *kernel2 = malloc(size_x * size_y * sizeof(double));
     double *output_kernel = malloc((output_size_x + 2) * (output_size_y+2) * sizeof(double));
@@ -114,7 +120,7 @@ int main(){
 
     printkernel(output_kernel2,sizeko2_x,sizeko2_y);
 
-
+    // Tidy things up..
     free(kernel1);
     free(kernel2);
     free(kernel3);

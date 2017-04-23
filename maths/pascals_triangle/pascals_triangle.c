@@ -1,3 +1,5 @@
+// Compute binomial coefficients (pascals triangle)
+
 #include <stdio.h>
 #include <stdlib.h>
 

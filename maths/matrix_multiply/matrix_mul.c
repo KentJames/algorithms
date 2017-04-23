@@ -1,3 +1,8 @@
+/* Naive matrix multiplication implementation. 
+ * Minor optimisation implemented through transposing second matrix.
+ * This dramatically increases locality for little effort,
+ * and has a large speedup. */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
