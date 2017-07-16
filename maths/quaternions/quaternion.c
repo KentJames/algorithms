@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-
+//Our quaternion datatype.
 typedef struct quaternion {
 
   double real;
@@ -10,6 +10,16 @@ typedef struct quaternion {
   double j;
   double k;
 } quaternion;
+
+
+quaternion create_quaternion(double real, double i, double j, double k);
+quaternion add_quaternions(quaternion a, quaternion b);
+quaternion conjugate_quaternion(quaternion a);
+double magnitude_quaternion(quaternion a);
+quaternion inverse_quaternion(quaternion a);
+quaternion multiply_quaternion_s(quaternion a, double b);
+quaternion multiply_quaternions(quaternion a, quaternion b);
+
 
 
 quaternion create_quaternion(double real, double i, double j, double k){
@@ -49,9 +59,22 @@ quaternion conjugate_quaternion(quaternion a){
   return result;
 }
 
+double magnitude_quaternion(quaternion a){
+
+  double result;
+
+  result = sqrt(pow(a.real,2)+pow(a.i,2)+pow(a.j,2)+pow(a.k,2));
+  return result;
+
+}
+
 quaternion inverse_quaternion(quaternion a){
   //Implement
-  return a;
+  quaternion result;
+
+  result = conjugate_quaternion(a);
+  result = multiply_quaternion_s(result,1/(magnitude_quaternion(result)));
+  return result;
 }
   
 quaternion multiply_quaternion_s(quaternion a,double s){
@@ -96,14 +119,20 @@ quaternion rotate_quaternions(quaternion point, quaternion axis, double angle){
   double vector_mag = 1/sqrt((axis.i*axis.i)+(axis.j*axis.j)+(axis.k*axis.k));
   
   p = point;
-  q = create_quaternion(cos(half_ang),axis.i*sin(half_ang)*vector_mag,
-			axis.j*sin(half_ang)*vector_mag, axis.k*sin(half_ang)*vector_mag);
-  q_conj = conjugate_quaternion(q);
+  //q = axis;
+  q = create_quaternion(cos(half_ang),axis.i*sin(half_ang),
+			axis.j*sin(half_ang), axis.k*sin(half_ang));
+
+  
+  result = multiply_quaternions(q,p);
+  result = multiply_quaternions(result,inverse_quaternion(q));
+
+//q_conj = conjugate_quaternion(q);
 
   
   
-  result = multiply_quaternions(p,q);
-  result = multiply_quaternions(result,q_conj);
+//result = multiply_quaternions(p,q);
+//result = multiply_quaternions(result,q_conj);
   
 
 
@@ -132,10 +161,10 @@ int main() {
 
   //Lets try rotating a point in 3d space about an axis, all in quaternions!!
 
-  quaternion axis = create_quaternion(0,1,0,0);
-  quaternion point = create_quaternion(0,0,2,0);
+  quaternion axis = create_quaternion(0,0,0,1);
+  quaternion point = create_quaternion(0,2,0,0);
 
-  quaternion rotated = rotate_quaternions(point,axis,1.508);
+  quaternion rotated = rotate_quaternions(point,axis,9.3);
   printf("Rotate Point about Axis using Quaternions: p' = qpq^-1 \n\n");
   printf("axis = %f + %fi + %fj + %fk \n",axis.real,axis.i,axis.j,axis.k);
   printf("point = %f + %fi + %fj + %fk \n",point.real,point.i,point.j,point.k);
