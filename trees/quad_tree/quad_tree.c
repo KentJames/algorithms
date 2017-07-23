@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 #define N 8
 #define MAX_DEPTH 2
@@ -18,7 +17,7 @@ typedef struct treeNode{
 } treeNode;
 
 
-
+// Fills array with some numbers
 void FillGrid(double* grid,int size){
 
   int x,y;
@@ -31,6 +30,7 @@ void FillGrid(double* grid,int size){
 
 }
 
+// Prints out every number in array.
 void PrintGrid(double* grid, int size){
 
   int x,y;
@@ -98,6 +98,7 @@ void DeleteStaticTree(treeNode *Root){
 
 }
 
+//Statically distributes a grid to equal subgrids on the leaf of a quad-tree.
 treeNode* DistributeGridTree(double *grid, treeNode *Root, int size, int depth){
 
 
@@ -189,10 +190,13 @@ treeNode* DistributeGridTree(double *grid, treeNode *Root, int size, int depth){
 
 int main() {
 
+  //Basic Quad-Tree
   treeNode *tree = InitNode();
   StaticTree(tree,N,MAX_DEPTH);
   DeleteStaticTree(tree);
 
+
+  //Distribute a grid recursively...
   double *grid = malloc(N * N * sizeof(double));
   FillGrid(grid,N);
   PrintGrid(grid,N);
