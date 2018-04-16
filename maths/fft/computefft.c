@@ -61,6 +61,7 @@ void fft_1d_DIT_radix2(double complex *input, int fft_size){
   }	 
 }
 
+// DIT, depth first, In-Place 1D FFT. Radix -4.
 void fft_1d_DIT_radix4(double complex *input, int fft_size){
 
   assert(fft_size & 0x55555555); //Check if any even bit is set(is power of four)
