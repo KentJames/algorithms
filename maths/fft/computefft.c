@@ -49,6 +49,7 @@ void fft_1d_DIT_radix2(double complex *input, int fft_size){
     }
     for(int i = 0; i < fft_size/2; ++i){
       input[i + fft_size/2] = temp_odd[i];
+      
     }
     free(temp_odd);
 
@@ -255,8 +256,8 @@ svfloat64x2_t complex_multiply_sve(svfloat64_t in1_real,
 				   svfloat64_t in1_imag,
 				   svfloat64_t in2_real,
 				   svfloat64_t in2_imag,
-				   svbool_t predicate,
-				   __Complex mul){
+				   svbool_t predicate){
+				   
 
   // Work out real parts.
   svfloat64_t vec_re1 = svmul_m(predicate, in1_real, in2_real);
@@ -335,14 +336,16 @@ void pre_compute_twiddle_factors(double complex *twiddle, int fft_size, int radi
 
     This attempt at optimising is purely for academic purposes..
   */
+   __Complex cmp_i; cmp_i.re = 0; cmp_i.im=1;
   assert(vl * sizeof(double) == 4 * sizeof(double complex)/2);
   assert(fft_size & 0x55555555); //Check if any even bit is set(is power of four)
   int scale = log(twiddle_size)/log(4) - log(fft_size)/log(4); // For indexing twiddle factor LUT.
   
   if(fft_size < 4){
     // Have recursed to the bottom.
-  } else {
-    double complex *even_1 = malloc(fft_size/4 * sizeof(double complex));
+    
+  } else if(fft_size = 4) { // At FFT Leaf
+    double complex *even_1 = malloc(fft_size/4 * sizeof(double complex));;
     double complex *even_2 = malloc(fft_size/4 * sizeof(double complex));
     double complex *odd_1 = malloc(fft_size/4 * sizeof(double complex));
     double complex *odd_2 = malloc(fft_size/4 * sizeof(double complex));
@@ -374,9 +377,9 @@ void pre_compute_twiddle_factors(double complex *twiddle, int fft_size, int radi
       /* double complex twiddle_o2 = cexp(0 + I * (-2.0 * M_PI * 3 * i)/fft_size); */
       
       // Radix-4 Butterfly.
-      svfloat64_t vec_real = svld1_gather_index(pg_t, (double*)&input[i], ig_re);
-      svfloat64_t vec_imag = svld1_gather_index(pg_t, (double*)&input[i], ig_im);
-      even_1[i] = (svaddv(pg_t, vec_real) + I * svaddv(pg_t, vec_imag));
+      svfloat64_t vec_real = svld1_gather_index(pg_t, (double*)&input[0], ig_re);
+      svfloat64_t vec_imag = svld1_gather_index(pg_t, (double*)&input[0], ig_im);
+      even_1[0] = (svaddv(pg_t, vec_real) + I * svaddv(pg_t, vec_imag));
       
       //even_1[i+1] = svadda(pg_t, 0.0, vec_imag);
 
@@ -384,13 +387,11 @@ void pre_compute_twiddle_factors(double complex *twiddle, int fft_size, int radi
       svfloat64_t vec_e2_imag = vec_imag;
       vec_e2_real = svneg_m(vec_e2_real, pg_ft, vec_e2_real);
       vec_e2_imag = svneg_m(vec_e2_imag, pg_ft, vec_e2_imag);
-      even_2[i] = (svaddv(pg_t, vec_e2_real) + I * svaddv(pg_t, vec_e2_imag)) * twiddle_e2;
+      even_2[0] = (svaddv(pg_t, vec_e2_real) + I * svaddv(pg_t, vec_e2_imag)) * twiddle_e2;
       
       //even_2[i+1] = svadda(pg_t, 0.0, vec_e2_imag);
       //printf("\n%le %le",creal(svadda(pg_t, 0.0, vec_e2_real)),cimag(svadda(pg_t, 0.0, vec_e2_imag)));
       svfloat64x2_t vec_o1;
-      
-      __Complex cmp_i; cmp_i.re = 0; cmp_i.im=1;
       
       vec_o1.v0 = vec_real; // v0 = real
       vec_o1.v1 = vec_imag; // v1 = imag
@@ -420,6 +421,89 @@ void pre_compute_twiddle_factors(double complex *twiddle, int fft_size, int radi
       /* odd_2[i] = (input[i] + I * input[i + fft_size/4] - */
       /* 		  input[i + fft_size/2] - I * input[i + 3 * fft_size/4]) * twiddle_o2; */
       
+    } else { // Node
+
+      svfloat64x2_t in_1, in_2, in_3, in_4; //Input Vectors
+      svfloat64x2_t e_1, e_2, o_1, o_2; //Output Vectors
+      svfloat64x2_t twid_e2, twid_o1, twid_o2; //Twiddle Factor Vectors
+      svfloat64x2_t temp_1, temp_2, temp_3; //For negations and complex multiplies.
+      
+      for(int i = 0; i < fft_size/4; i += 4){
+
+	double complex *even_1 = malloc(fft_size/4 * sizeof(double complex));;
+	double complex *even_2 = malloc(fft_size/4 * sizeof(double complex));
+	double complex *odd_1 = malloc(fft_size/4 * sizeof(double complex));
+	double complex *odd_2 = malloc(fft_size/4 * sizeof(double complex));
+	
+	in_1 = svld2(pg_t, (double*)&input[i]);
+	in_2 = svld2(pg_t, (double*)&input[i + fft_size/4]);
+	in_3 = svld2(pg_t, (double*)&input[i + fft_size/2]);
+	in_4 = svld2(pg_t, (double*)&input[i + 3 * fft_size/4]);
+
+	twid_e2 = svld2(pg_t, (double*)&twiddles[twiddle_size * scale + fft_size/2 + i]);
+	twid_o1 = svld2(pg_t, (double*)&twiddles[twiddle_size * scale + fft_size/4 + i]);
+	twid_o2 = svld2(pg_t, (double*)&twiddles[twiddle_size * scale + 3 * fft_size/4 + i]);
+	
+	e_1.v0 = svadd_m(pg_t, in_1.v0, in_2.v0);
+	e_1.v0 = svadd_m(pg_t, e_1.v0, in_3.v0);
+	e_1.v0 = svadd_m(pg_t, e_1.v0, in_4.v0);
+	e_1.v1 = svadd_m(pg_t, in_1.v1, in_2.v1);
+	e_1.v1 = svadd_m(pg_t, e_1.v1, in_3.v1);
+	e_1.v1 = svadd_m(pg_t, e_1.v1, in_4.v1);
+	
+	temp_1 = in_2;
+	temp_2 = in_4;
+	temp_1.v0 = svneg_m(temp_1.v0, pg_t, temp_1.v0);
+	temp_2.v0 = svneg_m(temp_2.v0, pg_t, temp_1.v0);
+	temp_1.v1 = svneg_m(temp_1.v1, pg_t, temp_1.v1);
+	temp_2.v1 = svneg_m(temp_2.v1, pg_t, temp_2.v1);
+
+	e_2.v0 = svadd_m(pg_t, in_1.v0, temp_1.v0);
+	e_2.v0 = svadd_m(pg_t, e_2.v0, in_3.v0);
+	e_2.v0 = svadd_m(pg_t, e_2.v0, temp_2.v0);
+	e_2.v1 = svadd_m(pg_t, in_1.v1, temp_1.v1);
+	e_2.v1 = svadd_m(pg_t, e_2.v1, in_3.v1);
+	e_2.v1 = svadd_m(pg_t, e_2.v1, temp_2.v1);
+	e_2 = complex_multiply_sve(e_2.v0, e_2.v1, twid_e2.v0, twid_e2.v1, pg_t);
+
+	temp_1 = complex_multiply_imm_sve(temp1.v0, temp1.v1, pg_t, cmp_i);
+	temp_3 = svneg_m(temp_3, pg_t, in_3);
+	temp_2 = in_4;
+	temp_2 = complex_multiply_imm_sve(temp2.v0, temp2.v1, pg_t, cmp_i);
+	
+	o_1.v0 = svadd_m(pg_t, in_1.v0, temp_1.v0);
+	o_1.v0 = svadd_m(pg_t, o_1.v0 temp_3.v0);
+	o_1.v0 = svadd_m(pg_t, o_1.v0 temp_2.v0);
+	o_1.v1 = svadd_m(pg_t, in_1.v1, temp_1.v1);
+	o_1.v1 = svadd_m(pg_t, o_1.v1 temp_3.v1);
+	o_1.v1 = svadd_m(pg_t, o_1.v1 temp_2.v1);
+	o_1 = complex_multiply_sve(o_1.v0, o_1.v1, twid_o1.v0, twid_o1.v1, pg_t);
+
+	temp_1 = in_2;
+	temp_1 = complex_multiply_imm_sve(temp2.v0, temp2.v1, pg_t, cmp_i);
+	temp_2 = in_3;
+	temp_2 = svneg_m(temp_2, pg_t, temp_2);
+	temp_3 = in_4;
+	temp_3 = complex_multply_imm_sve(temp3.v0, temp3.v1, pg_t, cmp_i);
+	temp_3 = svneg_m(temp_3, pg_t, temp_3);
+
+	o_2.v0 = svadd_m(pg_t, in_1.v0, temp_1.v0);
+	o_2.v0 = svadd_m(pg_t, o_2.v0, temp_2.v0);
+	o_2.v0 = svadd_m(pg_t, o_2.v0, temp_3.v0);
+	o_2.v1 = svadd_m(pg_t, in_1.v1, temp_1.v1);
+	o_2.v1 = svadd_m(pg_t, o_2.v1, temp_2.v1);
+	o_2.v1 = svadd_m(pg_t, o_2.v1, temp_3.v1);
+	o_2 = complex_multiply_sve(o_2.v0, o_2.v1, twid_o2.v0, twid_o2.v1, pg_t);
+	
+	svst2(pg_t, (double*)&even_1[i],e_1);
+	svst2(pg_t, (double*)&even_2[i],e_2);
+	svst2(pg_t, (double*)&odd_1[i],o_1);
+	svst2(pg_t, (double*)&odd_2[i],o_2);
+	
+
+      }
+
+
     }
     
     //Recurse
