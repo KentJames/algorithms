@@ -1,7 +1,7 @@
 /*
-A generic out-of-place implementation of merge sort.
+  A generic out-of-place implementation of merge sort.
 
-Uses comparator function as inspired by glibc's qsort.
+  Uses comparator function as inspired by glibc's qsort.
 */
 
 #include <stdio.h>
@@ -26,8 +26,8 @@ int char_comparator(const void *a, const void *b){
 void merge(char* base, char *left, char *right, size_t size, size_t num,
 	    int (*comparator)(const void*, const void*)){
 
-  size_t i_left;
-  size_t i_right;
+  size_t i_left=0;
+  size_t i_right=0;
   size_t result_i = 0;
   while(i_left < num && i_right < num){
 
