@@ -1,0 +1,23 @@
+#include <stdio.h>
+
+
+
+
+float floating_point_fn(){
+
+    const float a = 65.738;
+    const float b = 23.49;
+    const float c = 36.789;
+
+    return a*b + c
+}
+
+
+
+
+
+
+int main(){
+
+    return 0;
+}
