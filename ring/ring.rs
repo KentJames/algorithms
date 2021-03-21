@@ -4,17 +4,37 @@ pub struct RingBufferData<T> {
     payload: Vec<T>,
 }
 
+#[derive(PartialEq)]
 pub enum RingError {
     NoError = 0,
-    Error = -1}
+    Error = -1,
+    RingEmptyError = -10,
+}
+
+pub struct RingBufferPayloadRead<'a, T>{
+    status: RingError,
+    ring_buffer_data: &'a RingBufferData<T>,
+}
 
 pub struct RingBuffer<T> {
     pub capacity: u64,
     pub t_size: usize,
 
     data: Vec<RingBufferData<T>>,
-    current_index: u64,
+    items_in_buffer:    u64,
+    current_head_index: u64,
+    current_read_index: u64,
 }
+
+fn increment_index( index: u64, capacity: u64 ) -> u64 {
+	
+    if index + 1 >= capacity {
+	return 0;
+    } else {
+	return index + 1;
+    }
+}
+
 
 impl<T> RingBuffer<T> {
     pub fn init_ring_buffer(capacity: u64, dtype_size: usize) -> Self {
@@ -29,16 +49,33 @@ impl<T> RingBuffer<T> {
 	Self { capacity: capacity,
 	       t_size: dtype_size,
 	       data: data_vec,
-	       current_index: 0, }
+	       items_in_buffer: 0,
+	       current_head_index: 0,
+	       current_read_index: 0}
     }
     
-    pub fn get_current_index(&self) -> u64 {
-	self.current_index
+    pub fn get_current_head_index(&self) -> u64 {
+	self.current_head_index
     }
 
-    pub fn get_data(&self) -> &RingBufferData<T> {
-	let data = &self.data[self.current_index as usize];
-	return data;
+    pub fn get_data(&mut self) -> RingBufferPayloadRead<T> {
+	// This should always be something even if ring buffer is empty.
+	let data = &mut self.data[self.current_read_index as usize];
+	let mut return_error = RingError::NoError;
+	if self.items_in_buffer==0 {
+	    return_error = RingError::Error;
+	}
+	
+	let payload_return : RingBufferPayloadRead<T> =
+	RingBufferPayloadRead { status: return_error,
+				ring_buffer_data: data };
+	self.current_read_index = increment_index(self.current_read_index, self.capacity);
+	if self.items_in_buffer > 0 {
+	    self.items_in_buffer -= 1;
+	}
+	
+	
+	return payload_return;
     }
 
     pub fn add_new_data(&mut self, data: Vec<T>) -> RingError {
@@ -48,29 +85,23 @@ impl<T> RingBuffer<T> {
 	let new_ring_buffer_data : RingBufferData<T> =
 	RingBufferData { bytes: data.len() * self.t_size,
 	  dtype: self.t_size,
-	  payload: data, };
-	self.increment_ring_index();
+	  payload: data, };	
 
-	self.data[self.current_index as usize] = new_ring_buffer_data;
+	self.data[self.current_head_index as usize] = new_ring_buffer_data;
+	self.current_head_index = increment_index(self.current_head_index, self.capacity);
+
+	if self.items_in_buffer == self.capacity {
+	    self.current_read_index = increment_index(self.current_read_index, self.capacity);
+	}
 	
+	if self.items_in_buffer < self.capacity {
+	    self.items_in_buffer += 1;
+	}
+
 
 	return err;
     }
 
-    // Private Methods
-
-    fn increment_ring_index(&mut self) -> RingError {
-	let increment_index = self.current_index + 1;
-
-	if increment_index >= self.capacity {
-
-	    self.current_index = 0;
-	} else {
-	    self.current_index = increment_index;
-	}
-	
-	return RingError::NoError;
-    }
     
 }
 
@@ -85,35 +116,59 @@ fn main(){
     let vec_4 = vec![3.,5.,7.,9.];
 
     my_ring_buffer.add_new_data(vec_1);
-    println!("Current Ring Buffer Index: {}",my_ring_buffer.get_current_index());
+
+    
+    
+    
+    println!("Current Ring Buffer Index: {}",my_ring_buffer.get_current_head_index());
     {
 	let current_val = my_ring_buffer.get_data();
-	println!("Ring Buffer bytes: {}, Data type size: {}",current_val.bytes, current_val.dtype);
-	println!("Ring Buffer Data: {} {} {} {}",current_val.payload[0], current_val.payload[1], current_val.payload[2], current_val.payload[3]);
+	if current_val.status==RingError::NoError  {
+	    println!("Ring Buffer bytes: {}, Data type size: {}",current_val.ring_buffer_data.bytes, current_val.ring_buffer_data.dtype);
+	    println!("Ring Buffer Data: {} {} {} {}",current_val.ring_buffer_data.payload[0], current_val.ring_buffer_data.payload[1], current_val.ring_buffer_data.payload[2], current_val.ring_buffer_data.payload[3]);
+	} else {
+	    println!("Ring Error!");
+	}
     }
     
     my_ring_buffer.add_new_data(vec_2);
-    println!("Current Ring Buffer Index: {}",my_ring_buffer.get_current_index());
+    println!("Current Ring Buffer Index: {}",my_ring_buffer.get_current_head_index());
 
     {
 	let current_val = my_ring_buffer.get_data();
-	println!("Ring Buffer Data: {} {} {} {}",current_val.payload[0], current_val.payload[1], current_val.payload[2], current_val.payload[3]);
+	if current_val.status==RingError::NoError  {
+	    println!("Ring Buffer bytes: {}, Data type size: {}",current_val.ring_buffer_data.bytes, current_val.ring_buffer_data.dtype);
+	    println!("Ring Buffer Data: {} {} {} {}",current_val.ring_buffer_data.payload[0], current_val.ring_buffer_data.payload[1], current_val.ring_buffer_data.payload[2], current_val.ring_buffer_data.payload[3]);
+	} else {
+	    println!("Ring Error!");
+	}
     }
 
     my_ring_buffer.add_new_data(vec_3);
-    println!("Current Ring Buffer Index: {}",my_ring_buffer.get_current_index());
+    println!("Current Ring Buffer Index: {}",my_ring_buffer.get_current_head_index());
     {
 	let current_val = my_ring_buffer.get_data();
-	println!("Ring Buffer Data: {} {} {} {}",current_val.payload[0], current_val.payload[1], current_val.payload[2], current_val.payload[3]);
+	if current_val.status==RingError::NoError  {
+	    println!("Ring Buffer bytes: {}, Data type size: {}",current_val.ring_buffer_data.bytes, current_val.ring_buffer_data.dtype);
+	    println!("Ring Buffer Data: {} {} {} {}",current_val.ring_buffer_data.payload[0], current_val.ring_buffer_data.payload[1], current_val.ring_buffer_data.payload[2], current_val.ring_buffer_data.payload[3]);
+	} else {
+	    println!("Ring Error!");
+	}
     }
 
     my_ring_buffer.add_new_data(vec_4);
-    println!("Current Ring Buffer Index: {}",my_ring_buffer.get_current_index());
+    println!("Current Ring Buffer Index: {}",my_ring_buffer.get_current_head_index());
     {
 	let current_val = my_ring_buffer.get_data();
-	println!("Ring Buffer Data: {} {} {} {}",current_val.payload[0], current_val.payload[1], current_val.payload[2], current_val.payload[3]);
+	if current_val.status==RingError::NoError  {
+	    println!("Ring Buffer bytes: {}, Data type size: {}",current_val.ring_buffer_data.bytes, current_val.ring_buffer_data.dtype);
+	    println!("Ring Buffer Data: {} {} {} {}",current_val.ring_buffer_data.payload[0], current_val.ring_buffer_data.payload[1], current_val.ring_buffer_data.payload[2], current_val.ring_buffer_data.payload[3]);
+	} else {
+	    println!("Ring Error!");
+	}
     }
 
     
     
 }
+
